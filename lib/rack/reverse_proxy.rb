@@ -6,8 +6,6 @@ require "rack/exception"
 
 module Rack
   class ReverseProxy
-    include NewRelic::Agent::Instrumentation::ControllerInstrumentation if defined? NewRelic
-
     def initialize(app = nil, &b)
       @app = app || lambda {|env| [404, [], []] }
       @matchers = []
@@ -20,14 +18,7 @@ module Rack
       matcher = get_matcher(rackreq.fullpath, extract_http_request_headers(rackreq.env), rackreq)
       return @app.call(env) if matcher.nil?
 
-      if @global_options[:newrelic_instrumentation]
-        action_name = "#{rackreq.path.gsub(/\/\d+/,'/:id').gsub(/^\//,'')}/#{rackreq.request_method}" # Rack::ReverseProxy/foo/bar#GET
-        perform_action_with_newrelic_trace(:name => action_name, :request => rackreq) do
-          proxy(env, rackreq, matcher)
-        end
-      else
-        proxy(env, rackreq, matcher)
-      end
+      proxy(env, rackreq, matcher)
     end
 
     private
